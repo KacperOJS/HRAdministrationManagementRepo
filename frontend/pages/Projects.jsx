@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import ProjectDetails from './ProjectDetails'; // Assuming ProjectDetails is another component
 
 const Project = () => {
   const [projects, setProjects] = useState([]);
@@ -7,9 +8,12 @@ const Project = () => {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [selectedProject, setSelectedProject] = useState(null);
   const [showProjectDetails, setShowProjectDetails] = useState(false);
+  const [employees, setEmployees] = useState([]); // State for storing employees
+  const [selectedEmployee, setSelectedEmployee] = useState(''); // State for selected employee ID
 
   useEffect(() => {
     fetchProjects();
+    fetchEmployees(); // Fetch employees when component mounts
   }, []);
 
   const fetchProjects = () => {
@@ -26,6 +30,22 @@ const Project = () => {
         setProjects(data);
       })
       .catch(error => console.error('Error fetching projects:', error));
+  };
+
+  const fetchEmployees = () => {
+    const employeeURL = 'https://localhost:7091/api/Employees'; // Replace with your API endpoint for employees
+    fetch(employeeURL)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('Fetched employees:', data);
+        setEmployees(data);
+      })
+      .catch(error => console.error('Error fetching employees:', error));
   };
 
   const handleSort = (key) => {
@@ -66,16 +86,40 @@ const Project = () => {
     console.log(`Deleting project with id ${id}`);
   };
 
-  const openProjectDetails = (project) => {
-    if (!event.target.closest('.text-red-600')) { // Check if the click is not on the delete button
-      setSelectedProject(project);
-      setShowProjectDetails(true);
-    }
+  const openProjectDetails = (project, event) => {
+	// Check if the click target is the edit button
+	if (event.target.closest('button')?.querySelector('svg')?.classList.contains('text-blue-600')) {
+	  return; // If it's the edit icon, return without opening details
+	}
+  
+	setSelectedProject(project);
+	setShowProjectDetails(true);
   };
+  
+  
 
   const closeProjectDetails = () => {
     setSelectedProject(null);
     setShowProjectDetails(false);
+  };
+
+  const assignEmployee = (projectId) => {
+    const updatedProjects = projects.map(project => {
+      if (project.id === projectId) {
+        // Add selectedEmployee to assignedEmployees array
+        if (!project.assignedEmployees) {
+          project.assignedEmployees = [];
+        }
+        project.assignedEmployees.push(selectedEmployee);
+      }
+      return project;
+    });
+    setProjects(updatedProjects);
+    // Optionally, you can update the backend with the assigned employee information
+  };
+
+  const handleEmployeeSelection = (event) => {
+    setSelectedEmployee(event.target.value); // Update selectedEmployee state
   };
 
   return (
@@ -121,6 +165,24 @@ const Project = () => {
                     >
                       <FaTrash />
                     </button>
+                    {/* Assign employee button */}
+                    <select
+                      value={selectedEmployee}
+                      onChange={handleEmployeeSelection}
+                      className="text-green-600 hover:text-green-900"
+                    >
+                      <option value="">Select Employee</option>
+                      {employees.map(employee => (
+                        <option key={employee.id} value={employee.id}>{employee.fullName}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => assignEmployee(project.id)} // Pass projectId only
+                      className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg ml-2"
+                      disabled={!selectedEmployee}
+                    >
+                      Assign Employee
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -143,6 +205,10 @@ const Project = () => {
             <p className="mb-2"><strong>Project Manager:</strong> {selectedProject.projectManager}</p>
             <p className="mb-2"><strong>Status:</strong> {selectedProject.status}</p>
             <p className="mb-4"><strong>Comment:</strong> {selectedProject.comment}</p>
+            {/* Display assigned employees */}
+            {selectedProject.assignedEmployees && selectedProject.assignedEmployees.length > 0 && (
+              <p className="mb-4"><strong>Assigned Employees:</strong> {selectedProject.assignedEmployees.join(', ')}</p>
+            )}
             <button className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg mr-2" onClick={closeProjectDetails}>Close</button>
             <button className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg" onClick={() => deleteProject(selectedProject.id)}>Delete</button>
           </div>

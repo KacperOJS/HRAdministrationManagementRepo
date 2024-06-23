@@ -5,47 +5,86 @@ const LeaveRequests = () => {
   const [requests, setRequests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [error, setError] = useState(null);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionComment, setRejectionComment] = useState('');
 
   useEffect(() => {
-    const URL = 'https://localhost:7091/api/LeaveRequest';
-    fetch(URL)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return res.json();
-      })
-      .then(data => {
-        console.log('Fetched data:', data);
-        // Simulating initial data fetch from API
-        setRequests(data.map(request => ({ ...request, action: '' })));
-      })
-      .catch(error => console.error('Error fetching data:', error));
+    fetchRequests();
   }, []);
 
-  const handleApproval = (id, status) => {
-    const updatedRequests = requests.map(request =>
-      request.id === id ? { ...request, status, action: status } : request
-    );
-    setRequests(updatedRequests);
-
-    // Simulate API call to update the status
-    console.log(`Request ${id} updated to ${status}`);
-
-    // Simulate recalculating employee absence balance
-    // Implement your logic here
-
-    // Optionally, open a modal or form for adding rejection comments
-    if (status === 'Rejected') {
-      // Example: Open a modal for adding rejection comments
-      openRejectionModal(id);
+  const fetchRequests = async () => {
+    try {
+      const URL = 'https://localhost:7091/api/LeaveRequest';
+      const response = await fetch(URL);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json(); // Attempt to parse JSON
+      console.log('Fetched data:', data);
+      setRequests(data.map(request => ({ ...request, action: '' })));
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError(error.message);
     }
   };
 
+  const updateLeaveRequest = async (id, status, comment) => {
+    try {
+      const requestToUpdate = requests.find(request => request.id === id);
+      const response = await fetch(`https://localhost:7091/api/LeaveRequest/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...requestToUpdate, status, comment }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      // Check if response body is empty before parsing
+      const text = await response.text();
+      const updatedRequest = text ? JSON.parse(text) : {};
+
+      const updatedRequests = requests.map(request =>
+        request.id === id ? { ...request, status: updatedRequest.status, action: status, comment } : request
+      );
+      setRequests(updatedRequests);
+      console.log(`Request ${id} updated to ${status}`);
+
+      if (status === 'Rejected') {
+        closeRejectionModal();
+      }
+    } catch (error) {
+      console.error('Error updating request:', error);
+      setError('Error updating request. Please try again later.');
+    }
+  };
+
+  const handleApproval = async (id, status, comment) => {
+    await updateLeaveRequest(id, status, comment);
+    // Automatically fetch updated data after approval/rejection
+    fetchRequests();
+  };
+
   const openRejectionModal = (id) => {
-    // Implement logic to open a modal or form for adding rejection comments
     console.log(`Opening rejection modal for request ${id}`);
-    // Example: Show a modal component with input field for comment
+    setSelectedRequest(id);
+    setShowRejectionModal(true);
+  };
+
+  const closeRejectionModal = () => {
+    console.log('Closing rejection modal');
+    setShowRejectionModal(false);
+    setRejectionComment('');
+    setSelectedRequest(null);
+  };
+
+  const handleRejectionCommentChange = (event) => {
+    setRejectionComment(event.target.value);
   };
 
   const handleSearchChange = (event) => {
@@ -81,6 +120,10 @@ const LeaveRequests = () => {
     );
   });
 
+  const openRequestDetails = (request) => {
+    setSelectedRequest(request);
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen">
       <div className="p-4 flex justify-between items-center">
@@ -93,6 +136,7 @@ const LeaveRequests = () => {
           className="border p-2 rounded-lg"
         />
       </div>
+      {error && <div className="p-4 text-red-600">{error}</div>}
       <div className="p-4">
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white rounded-lg overflow-hidden">
@@ -108,7 +152,7 @@ const LeaveRequests = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredRequests.map(request => (
-                <tr key={request.id}>
+                <tr key={request.id} onClick={() => openRequestDetails(request)} className="cursor-pointer hover:bg-gray-100">
                   <td className="py-2 px-3">{request.employee}</td>
                   <td className="py-2 px-3">{new Date(request.startDate).toLocaleDateString()}</td>
                   <td className="py-2 px-3">{new Date(request.endDate).toLocaleDateString()}</td>
@@ -129,13 +173,13 @@ const LeaveRequests = () => {
                     {request.action === '' && (
                       <>
                         <button
-                          onClick={() => handleApproval(request.id, 'Approved')}
+                          onClick={(e) => { e.stopPropagation(); handleApproval(request.id, 'Approved', ''); }}
                           className="text-green-600 hover:text-green-900"
                         >
                           <FaCheck />
                         </button>
                         <button
-                          onClick={() => handleApproval(request.id, 'Rejected')}
+                          onClick={(e) => { e.stopPropagation(); openRejectionModal(request.id); }}
                           className="text-red-600 hover:text-red-900"
                         >
                           <FaTimes />
@@ -169,6 +213,46 @@ const LeaveRequests = () => {
           </table>
         </div>
       </div>
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-lg cursor-pointer">
+            <h2 className="text-xl font-bold mb-4">Request Details</h2>
+            <p><strong>Employee:</strong> {selectedRequest.employee}</p>
+            <p><strong>Start Date:</strong> {new Date(selectedRequest.startDate).toLocaleDateString()}</p>
+            <p><strong>End Date:</strong> {new Date(selectedRequest.endDate).toLocaleDateString()}</p>
+            <p><strong>Reason:</strong> {selectedRequest.absenceReason}</p>
+            <p><strong>Status:</strong> {selectedRequest.status}</p>
+            <button className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg mt-4 hover:bg-gray-400" onClick={() => setSelectedRequest(null)}>Close</button>
+          </div>
+        </div>
+      )}
+      {showRejectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-lg w-1/2">
+            <h2 className="text-lg font-semibold mb-4">Add Rejection Comment</h2>
+            <textarea
+              className="border w-full p-2 mb-4"
+              placeholder="Enter rejection comment..."
+              value={rejectionComment}
+              onChange={handleRejectionCommentChange}
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleApproval(selectedRequest.id, 'Rejected', rejectionComment)}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg mr-2 hover:bg-red-600"
+              >
+                Reject
+              </button>
+              <button
+                onClick={closeRejectionModal}
+                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
