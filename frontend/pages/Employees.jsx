@@ -1,7 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { BsPersonFill, BsThreeDotsVertical } from 'react-icons/bs';
 
-const Customers = () => {
+const ConfirmationModal = ({ isOpen, onCancel, onConfirm, fullName }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
+      <div className='bg-white p-4 rounded-lg'>
+        <h2>Delete Employee</h2>
+        <p>Are you sure you want to delete {fullName}?</p>
+        <div className='mt-4 flex justify-end'>
+          <button onClick={onCancel} className='bg-gray-500 text-white px-4 py-2 rounded-lg mr-2'>
+            No
+          </button>
+          <button onClick={onConfirm} className='bg-red-500 text-white px-4 py-2 rounded-lg'>
+            Yes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Employees = () => {
   const [login, setLogin] = useState('Kacper');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -11,8 +32,13 @@ const Customers = () => {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [selectedSubdivision, setSelectedSubdivision] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
   useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = () => {
     const url = "https://localhost:7091/api/Employee";
     fetch(url)
       .then((res) => {
@@ -27,7 +53,7 @@ const Customers = () => {
       .catch((error) => {
         console.error('Error fetching data:', error);
       });
-  }, []);
+  };
 
   const handleDeactivateClick = () => {
     const updatedEmployees = employees.map(emp =>
@@ -35,6 +61,23 @@ const Customers = () => {
     );
     setEmployees(updatedEmployees);
     setShowModal(false);
+  };
+
+  const handleDeleteEmployee = () => {
+    fetch(`https://localhost:7091/api/Employee/${selectedEmployee.id}`, {
+      method: 'DELETE',
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const updatedEmployees = employees.filter(emp => emp.id !== selectedEmployee.id);
+      setEmployees(updatedEmployees);
+      setShowModal(false);
+    })
+    .catch(error => {
+      console.error('Error deleting employee:', error);
+    });
   };
 
   const closeModal = () => {
@@ -51,17 +94,48 @@ const Customers = () => {
   };
 
   const handleSaveNewEmployee = (newEmployee) => {
-    newEmployee.id = employees.length + 1; // Assigning a new ID (this should be handled better in a real application)
-    setEmployees([...employees, newEmployee]);
-    closeAddModal();
+    fetch("https://localhost:7091/api/Employee", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newEmployee),
+    })
+    .then(response => response.json())
+    .then(data => {
+      setEmployees([...employees, data]); // Update local state immediately
+      closeAddModal();
+    })
+    .catch(error => {
+      console.error('Error adding employee:', error);
+    });
   };
-
+  
   const handleUpdateEmployee = (updatedEmployee) => {
-    const updatedEmployees = employees.map(emp =>
-      emp.id === updatedEmployee.id ? updatedEmployee : emp
-    );
-    setEmployees(updatedEmployees);
-    closeModal();
+    fetch(`https://localhost:7091/api/Employee/${updatedEmployee.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedEmployee),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      const updatedEmployees = employees.map(emp =>
+        emp.id === data.id ? data : emp
+      );
+      setEmployees(updatedEmployees);
+      closeModal();
+      fetchEmployees();
+    })
+    .catch(error => {
+      console.error('Error updating employee:', error);
+    });
   };
 
   const handleSearchChange = (event) => {
@@ -120,7 +194,6 @@ const Customers = () => {
           className='border p-2 rounded-lg ml-2'
         >
           <option value=''>All Subdivisions</option>
-          {/* Add your subdivisions here */}
           <option value='IT Department'>IT Department</option>
           <option value='Marketing'>Marketing</option>
           <option value='Finance Department'>Finance Department</option>
@@ -209,34 +282,45 @@ const Customers = () => {
               </div>
               <div>
                 <label>Status</label>
-                <input type='text' name='status' className='border p-2 rounded-lg' defaultValue={selectedEmployee.status} required />
+                <select name='status' className='border p-2 rounded-lg' defaultValue={selectedEmployee.status} required>
+                  <option value='Active'>Active</option>
+                  <option value='Inactive'>Inactive</option>
+                </select>
               </div>
               <div>
                 <label>People Partner</label>
                 <input type='number' name='peoplePartner' className='border p-2 rounded-lg' defaultValue={selectedEmployee.peoplePartner} required />
               </div>
               <div>
-                <label>Out of Office Balance</label>
+                <label>Out Of Office Balance</label>
                 <input type='number' step='0.01' name='outOfOfficeBalance' className='border p-2 rounded-lg' defaultValue={selectedEmployee.outOfOfficeBalance} required />
               </div>
               <div>
-                <label>Photo</label>
+                <label>Photo URL</label>
                 <input type='text' name='photo' className='border p-2 rounded-lg' defaultValue={selectedEmployee.photo} />
               </div>
-              <div className='flex justify-around mt-4'>
-                <button type='submit' className='bg-blue-500 text-white px-4 py-2 rounded-lg'>
-                  Save
-                </button>
-                <button type='button' onClick={closeModal} className='bg-gray-500 text-white px-4 py-2 rounded-lg'>
+              <div className='mt-4 flex justify-end'>
+                <button type='button' onClick={closeModal} className='bg-yellow-500 text-white px-4 py-2 rounded-lg mr-2'>
                   Cancel
                 </button>
-                <button type='button' onClick={handleDeactivateClick} className='bg-red-500 text-white px-4 py-2 rounded-lg'>
-                  Deactivate
+                <button type='button' onClick={() => setShowConfirmationModal(true)} className='bg-red-500 text-white px-4 py-2 rounded-lg mr-2'>
+                  Delete
+                </button>
+                <button type='submit' className='bg-blue-500 text-white px-4 py-2 rounded-lg'>
+                  Save
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+      {showConfirmationModal && (
+        <ConfirmationModal
+          isOpen={showConfirmationModal}
+          onCancel={() => setShowConfirmationModal(false)}
+          onConfirm={handleDeleteEmployee}
+          fullName={selectedEmployee ? selectedEmployee.fullName : ''}
+        />
       )}
       {showAddModal && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
@@ -245,7 +329,6 @@ const Customers = () => {
             <form onSubmit={(e) => {
               e.preventDefault();
               const newEmployee = {
-                id: employees.length + 1, // Temporary ID generation
                 fullName: e.target.fullName.value,
                 subdivision: e.target.subdivision.value,
                 position: e.target.position.value,
@@ -270,26 +353,29 @@ const Customers = () => {
               </div>
               <div>
                 <label>Status</label>
-                <input type='text' name='status' className='border p-2 rounded-lg' required />
+                <select name='status' className='border p-2 rounded-lg' required>
+                  <option value='Active'>Active</option>
+                  <option value='Inactive'>Inactive</option>
+                </select>
               </div>
               <div>
                 <label>People Partner</label>
                 <input type='number' name='peoplePartner' className='border p-2 rounded-lg' required />
               </div>
               <div>
-                <label>Out of Office Balance</label>
+                <label>Out Of Office Balance</label>
                 <input type='number' step='0.01' name='outOfOfficeBalance' className='border p-2 rounded-lg' required />
               </div>
               <div>
-                <label>Photo</label>
+                <label>Photo URL</label>
                 <input type='text' name='photo' className='border p-2 rounded-lg' />
               </div>
-              <div className='flex justify-around mt-4'>
+              <div className='mt-4 flex justify-end'>
+                <button type='button' onClick={closeAddModal} className='bg-red-500 text-white px-4 py-2 rounded-lg mr-2'>
+                  Cancel
+                </button>
                 <button type='submit' className='bg-blue-500 text-white px-4 py-2 rounded-lg'>
                   Save
-                </button>
-                <button type='button' onClick={closeAddModal} className='bg-gray-500 text-white px-4 py-2 rounded-lg'>
-                  Cancel
                 </button>
               </div>
             </form>
@@ -300,4 +386,4 @@ const Customers = () => {
   );
 };
 
-export default Customers;
+export default Employees;
