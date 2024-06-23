@@ -30,7 +30,9 @@ const Customers = () => {
   }, []);
 
   const handleDeactivateClick = () => {
-    const updatedEmployees = employees.filter(emp => emp.id !== selectedEmployee.id);
+    const updatedEmployees = employees.map(emp =>
+      emp.id === selectedEmployee.id ? { ...emp, status: 'Inactive' } : emp
+    );
     setEmployees(updatedEmployees);
     setShowModal(false);
   };
@@ -128,10 +130,6 @@ const Customers = () => {
           <option value='Security'>Security</option>
           <option value='Customer Service'>Customer Service</option>
           <option value='Sales Department'>Sales Department</option>
-
-
-
-
         </select>
         <select
           value={selectedStatus}
