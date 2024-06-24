@@ -9,7 +9,7 @@ const Project = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [employees, setEmployees] = useState([]); // State for storing employees
-  const [selectedEmployee, setSelectedEmployee] = useState(''); // State for selected employee ID
+  const [selectedEmployees, setSelectedEmployees] = useState({}); // State for selected employee ID per project
 
   useEffect(() => {
     fetchProjects();
@@ -33,7 +33,7 @@ const Project = () => {
   };
 
   const fetchEmployees = () => {
-    const employeeURL = 'https://localhost:7091/api/Employees'; // Replace with your API endpoint for employees
+    const employeeURL = 'https://localhost:7091/api/Employee'; // Replace with your API endpoint for employees
     fetch(employeeURL)
       .then(res => {
         if (!res.ok) {
@@ -86,17 +86,10 @@ const Project = () => {
     console.log(`Deleting project with id ${id}`);
   };
 
-  const openProjectDetails = (project, event) => {
-	// Check if the click target is the edit button
-	if (event.target.closest('button')?.querySelector('svg')?.classList.contains('text-blue-600')) {
-	  return; // If it's the edit icon, return without opening details
-	}
-  
-	setSelectedProject(project);
-	setShowProjectDetails(true);
+  const openProjectDetails = (project) => {
+    setSelectedProject(project);
+    setShowProjectDetails(true);
   };
-  
-  
 
   const closeProjectDetails = () => {
     setSelectedProject(null);
@@ -110,7 +103,10 @@ const Project = () => {
         if (!project.assignedEmployees) {
           project.assignedEmployees = [];
         }
-        project.assignedEmployees.push(selectedEmployee);
+        const employee = employees.find(emp => emp.id === parseInt(selectedEmployees[projectId]));
+        if (employee) {
+          project.assignedEmployees.push(employee.fullName);
+        }
       }
       return project;
     });
@@ -118,8 +114,11 @@ const Project = () => {
     // Optionally, you can update the backend with the assigned employee information
   };
 
-  const handleEmployeeSelection = (event) => {
-    setSelectedEmployee(event.target.value); // Update selectedEmployee state
+  const handleEmployeeSelection = (projectId, event) => {
+    setSelectedEmployees({
+      ...selectedEmployees,
+      [projectId]: event.target.value
+    });
   };
 
   return (
@@ -149,14 +148,17 @@ const Project = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredProjects.map(project => (
-                <tr key={project.id} onClick={(event) => openProjectDetails(project, event)} className="cursor-pointer">
+                <tr key={project.id} className="cursor-pointer">
                   <td className="py-2 px-3">{project.projectType}</td>
                   <td className="py-2 px-3">{project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}</td>
                   <td className="py-2 px-3">{project.endDate ? new Date(project.endDate).toLocaleDateString() : '-'}</td>
                   <td className="py-2 px-3">{project.projectManager}</td>
                   <td className="py-2 px-3">{project.status}</td>
                   <td className="py-2 px-3 flex space-x-2">
-                    <button className="text-blue-600 hover:text-blue-900">
+                    <button 
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => openProjectDetails(project)}
+                    >
                       <FaEdit />
                     </button>
                     <button
@@ -167,8 +169,8 @@ const Project = () => {
                     </button>
                     {/* Assign employee button */}
                     <select
-                      value={selectedEmployee}
-                      onChange={handleEmployeeSelection}
+                      value={selectedEmployees[project.id] || ''}
+                      onChange={(event) => handleEmployeeSelection(project.id, event)}
                       className="text-green-600 hover:text-green-900"
                     >
                       <option value="">Select Employee</option>
@@ -179,7 +181,7 @@ const Project = () => {
                     <button
                       onClick={() => assignEmployee(project.id)} // Pass projectId only
                       className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg ml-2"
-                      disabled={!selectedEmployee}
+                      disabled={!selectedEmployees[project.id]}
                     >
                       Assign Employee
                     </button>
@@ -195,7 +197,7 @@ const Project = () => {
           </table>
         </div>
       </div>
-      {showProjectDetails && (
+      {showProjectDetails && selectedProject && (
         <div className="fixed top-0 left-0 w-full h-full bg-gray-800 bg-opacity-75 flex justify-center items-center">
           <div className="bg-white rounded-lg p-6 max-w-md">
             <h2 className="text-xl font-bold mb-4">Project Details</h2>
