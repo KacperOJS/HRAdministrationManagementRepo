@@ -4102,11 +4102,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Kacper\\Desktop\\outofservice2\\HRAdministration\\HRAdministration\\HRAdministration.csproj",
+      "projectUniqueName": "C:\\Users\\Kacper\\Desktop\\OutOfService\\HRAdministration\\HRAdministration\\HRAdministration.csproj",
       "projectName": "HRAdministration",
-      "projectPath": "C:\\Users\\Kacper\\Desktop\\outofservice2\\HRAdministration\\HRAdministration\\HRAdministration.csproj",
+      "projectPath": "C:\\Users\\Kacper\\Desktop\\OutOfService\\HRAdministration\\HRAdministration\\HRAdministration.csproj",
       "packagesPath": "C:\\Users\\Kacper\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Kacper\\Desktop\\outofservice2\\HRAdministration\\HRAdministration\\obj\\",
+      "outputPath": "C:\\Users\\Kacper\\Desktop\\OutOfService\\HRAdministration\\HRAdministration\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

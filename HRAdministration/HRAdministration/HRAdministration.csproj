@@ -23,9 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Interfaces\" />
     <Folder Include="Dto\" />
-    <Folder Include="Repository\" />
   </ItemGroup>
 
 </Project>

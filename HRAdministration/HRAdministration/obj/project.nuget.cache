@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "wV2OzdKt7YVQ9OnoNq0hhaRHuDOlDyfRpzttcF4nx9QwiH2h7L97cNzanX5YVMV1hXWZOGbveGMFK56AH52IbQ==",
+  "dgSpecHash": "21KkZKHWhFJxHtjAu7u3xcZcKP7LvUPZ7FJMHRo+F8NPUtVrOcgbe9hsTFvImlrCLyd5ZDy45lDfvLoKWvbI6w==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Kacper\\Desktop\\outofservice2\\HRAdministration\\HRAdministration\\HRAdministration.csproj",
+  "projectFilePath": "C:\\Users\\Kacper\\Desktop\\OutOfService\\HRAdministration\\HRAdministration\\HRAdministration.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Kacper\\.nuget\\packages\\azure.core\\1.24.0\\azure.core.1.24.0.nupkg.sha512",
     "C:\\Users\\Kacper\\.nuget\\packages\\azure.identity\\1.6.0\\azure.identity.1.6.0.nupkg.sha512",
